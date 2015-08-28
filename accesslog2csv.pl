@@ -8,6 +8,10 @@
 # See COPYRIGHT.txt and LICENSE.txt.
 #
 
+
+use Socket;
+
+
 if ("$ARGV[0]" =~ /^-h|--help$/) {
   print "Usage: $0 access_log_file > csv_output_file.csv\n";
   print "   Or, $0 < access_log_file > csv_output_file.csv\n";
@@ -18,13 +22,13 @@ if ("$ARGV[0]" =~ /^-h|--help$/) {
 %MONTHS = ( 'Jan' => '01', 'Feb' => '02', 'Mar' => '03', 'Apr' => '04', 'May' => '05', 'Jun' => '06',
   'Jul' => '07', 'Aug' => '08', 'Sep' => '09', 'Oct' => '10', 'Nov' => '11', 'Dec' => '12' );
 
-print STDOUT "\"Host\",\"Log Name\",\"Date Time\",\"Time Zone\",\"Method\",\"URL\",\"Response Code\",\"Bytes Sent\",\"Referer\",\"User Agent\"\n";
+print STDOUT "\"IP\",\"Hostname\",\"Log Name\",\"Date Time\",\"Time Zone\",\"Method\",\"URL\",\"Response Code\",\"Bytes Sent\",\"Referer\",\"User Agent\"\n";
 $line_no = 0;
 
 while (<>) {
   ++$line_no;
   if (/^([\w\.:-]+)\s+([\w\.:-]+)\s+([\w\.-]+)\s+\[(\d+)\/(\w+)\/(\d+):(\d+):(\d+):(\d+)\s?([\w:\+-]+)]\s+"(\w+)\s+(\S+)\s+HTTP\/1\.\d"\s+(\d+)\s+([\d-]+)((\s+"([^"]+)"\s+")?([^"]+)")?$/) {
-    $host = $1;
+    $ip = $1;
     $other = $2;
     $logname = $3;
     $day = $4;
@@ -45,7 +49,10 @@ while (<>) {
     $referer = $17;
     $ua = $18;
 
-    print STDOUT "\"$host\",\"$logname\",\"$year-$month-$day $hour:$min:$sec\",\"GMT$tz\",\"$method\",\"$url\",$code,$bytesd,\"$referer\"\,\"$ua\"\n";
+    # Added to allow for reverse lookup from IP to DNS Name
+    $hostname = gethostbyaddr(inet_aton($ip),AF_INET);
+
+    print STDOUT "\"$ip\",\"$hostname\",\"$logname\",\"$year-$month-$day $hour:$min:$sec\",\"GMT$tz\",\"$method\",\"$url\",$code,$bytesd,\"$referer\"\,\"$ua\"\n";
   } else {
     print STDERR "Invalid Line at $line_no: $_";
   }
